@@ -108,6 +108,8 @@ main { max-width: 760px; margin: 0 auto; padding: 16px; }
 
 /* glyphs */
 .g { width: 1em; height: 1em; vertical-align: -0.12em; color: var(--glyph); }
+/* right-to-left Nivean writing uses mirror-image glyphs */
+:root[data-glyph-dir="rtl"] .g, :root[data-glyph-dir="rtl"] .logo svg { transform: scaleX(-1); }
 .g-sep, .g-op { color: var(--glyph); font-weight: 700; padding: 0 .08em; }
 .glyph-out {
   font-size: 44px; min-height: 64px; margin: 1rem 0 .5rem; padding: .6rem;

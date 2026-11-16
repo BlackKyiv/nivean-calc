@@ -25,12 +25,15 @@ const BODIES = [
 export const DIGITS = "0123456789ABC";
 export const NAMES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 
-export function glyphSVG(d, cls = "g") {
-  return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${BODIES[d]}</svg>`;
+// On the page, mirroring for right-to-left writing is done in CSS (.g). `mirrored` bakes it
+// into the SVG itself, for glyphs drawn outside the page (e.g. into a canvas).
+export function glyphSVG(d, cls = "g", mirrored = false) {
+  const body = mirrored ? `<g transform="matrix(-1 0 0 1 40 0)">${BODIES[d]}</g>` : BODIES[d];
+  return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
-// Writing direction of glyph rows. Niveans write numbers right to left: the most significant
-// digit is on the right. "ltr" draws them in the European order instead.
+// Writing direction. Niveans write numbers right to left (most significant digit on the right)
+// with mirror-image glyphs. "ltr" uses the wiki chart's glyph forms in European order.
 let dir = "rtl";
 export const glyphDir = () => dir;
 export function setGlyphDir(d) {

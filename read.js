@@ -327,7 +327,7 @@ export function initRead({ openInConverter }) {
           continue;
         }
         const d = DIGITS.indexOf(ch);
-        const svg = glyphSVG(d)
+        const svg = glyphSVG(d, "g", glyphDir() === "rtl")
           .replace("<svg ", `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" `)
           .replace(/currentColor/g, "#2a2a35")
           .replace(/(cx|cy|x1|y1|x2|y2)="([\d.]+)"/g, (m, k, v) => `${k}="${(+v + (Math.random() - 0.5) * 2).toFixed(1)}"`);
