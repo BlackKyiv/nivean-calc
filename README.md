@@ -3,6 +3,11 @@
 A small web calculator for the base-13 numbers and units of the **Niveans**, a species from the
 [Iso Wars](https://isowars.miraheze.org/wiki/Niveans) universe.
 
+**Live: https://blackkyiv.github.io/nivean-calc/**
+
+Nivean numbers are written right to left (most significant digit on the right) with mirror-image
+glyphs; the app does the same by default, with a switch for left-to-right chart forms.
+
 - **Numbers**: decimal ⇄ base 13, drawn with Nivean numeral glyphs, with a place-value breakdown.
 - **Calculator**: + − × ÷ and brackets, entered in base 13 (glyph keypad) or base 10, result in both.
 - **Read image**: reads Nivean numerals from a photo, scan or screenshot (file, paste, drag-and-drop),
@@ -23,13 +28,9 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 (ES modules don't load from `file://`, so use a local server.)
 
-## Deploy to GitHub Pages
+## Deploy
 
-1. Push this folder to a GitHub repository (the files sit at the repo root).
-2. Repository → **Settings → Pages** → Source: **Deploy from a branch**, branch `main`, folder `/ (root)`.
-3. The site appears at `https://<user>.github.io/<repo>/` after a minute.
-
-Note: GitHub Pages on a free account needs a **public** repository.
+GitHub Pages serves the `main` branch root, so pushing to `main` publishes (about a minute).
 
 ## Assumptions
 
