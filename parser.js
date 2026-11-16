@@ -333,6 +333,19 @@ function classify(norm) {
 export function parseImage(img, { crop = null, ink = "auto" } = {}) {
   if (!TEMPLATES) throw new Error("templates not loaded");
   const gray = imageToGray(img, crop);
+  if (ink !== "auto") return parseGray(gray, ink);
+  // Overall brightness can't tell white text on a pale sky from dark text on paper,
+  // so read both ways and keep the reading with more (and more confident) digits.
+  const quality = (r) => {
+    let q = 0;
+    for (const l of r.lines) for (const g of l.glyphs) if (g.kind === "digit" && !g.reject) q += g.unsure ? 1 : 2 + Math.max(0, 3 - g.candidates[0].score) * 0.1;
+    return q;
+  };
+  const a = parseGray(gray, "dark"), b = parseGray(gray, "light");
+  return quality(b) > quality(a) ? b : a;
+}
+
+function parseGray(gray, ink) {
   const { w, h } = gray;
   const { mask, dark } = binarize(gray, ink);
   let { lab, comps } = components(mask, w, h);
