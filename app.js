@@ -1,4 +1,4 @@
-import { DIGITS, NAMES, glyphSVG, glyphString } from "./glyphs.js";
+import { DIGITS, NAMES, glyphSVG, glyphString, glyphDir, setGlyphDir } from "./glyphs.js";
 import { parseBase, fmtBase, fmtShow, group10 } from "./numbers.js";
 import { initRead } from "./read.js";
 
@@ -23,6 +23,28 @@ $$(".tabs [role=tab]").forEach((b) => b.addEventListener("click", () => showTab(
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 
 $(".logo").innerHTML = glyphSVG(12);
+
+/* ---------- writing direction ---------- */
+
+const dirBtn = $("#dir-toggle");
+function showDir() {
+  const rtl = glyphDir() === "rtl";
+  dirBtn.innerHTML = rtl
+    ? '<span aria-hidden="true">⇠</span> <span class="long">Right to left</span><span class="short">RTL</span>'
+    : '<span class="long">Left to right</span><span class="short">LTR</span> <span aria-hidden="true">⇢</span>';
+  dirBtn.setAttribute("aria-label", "Glyph writing direction: " + (rtl ? "right to left" : "left to right"));
+  dirBtn.title = "Order of Nivean glyphs (base-13 text stays left to right). Tap to switch.";
+}
+dirBtn.addEventListener("click", () => {
+  setGlyphDir(glyphDir() === "rtl" ? "ltr" : "rtl");
+  store.set("glyphDir", glyphDir());
+});
+document.addEventListener("glyphdir", () => {
+  showDir();
+  fromTri();
+  calcRender();
+  unitRender();
+});
 
 /* ---------- numbers tab ---------- */
 
@@ -395,6 +417,7 @@ initRead({
 /* ---------- init ---------- */
 
 applySettingsInputs();
+setGlyphDir(store.get("glyphDir", "rtl"));
 fromDec();
 buildCalcPad();
 calcRender();

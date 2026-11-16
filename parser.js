@@ -118,6 +118,46 @@ function groupParts(comps, tol) {
   return [...groups.values()];
 }
 
+// Second pass: join nearby pieces of one glyph (the circles and square of a 6, a 3 drawn as two
+// circles), closest pairs first. A merge must still look like a single glyph, so two glyphs
+// written close together (or a glyph next to a logo) stay apart. Specks join only when touching.
+function mergeShapes(groups) {
+  const H = (g) => g.y1 - g.y0 + 1, Wd = (g) => g.x1 - g.x0 + 1;
+  const pairs = [];
+  for (let i = 0; i < groups.length; i++)
+    for (let j = i + 1; j < groups.length; j++) {
+      const a = groups[i], b = groups[j];
+      const big = Math.max(H(a), H(b), Wd(a), Wd(b));
+      const tiny = (g) => Wd(g) < 0.3 * big && H(g) < 0.3 * big;
+      const gap = Math.max(gapX(a, b), gapY(a, b));
+      if (gap <= (tiny(a) || tiny(b) ? Math.max(1, 0.04 * big) : 0.15 * big)) pairs.push([gap, i, j]);
+    }
+  pairs.sort((p, q) => p[0] - q[0]);
+  const parent = groups.map((_, i) => i);
+  const bb = groups.map((g) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1 }));
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (const [, i, j] of pairs) {
+    const ra = find(i), rb = find(j);
+    if (ra === rb) continue;
+    const a = bb[ra], b = bb[rb];
+    const m = { x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) };
+    if (Wd(m) > 1.3 * H(m)) continue;
+    parent[ra] = rb;
+    bb[rb] = m;
+  }
+  const out = new Map();
+  groups.forEach((g, i) => {
+    const r = find(i);
+    const o = out.get(r) || { parts: [], x0: Infinity, y0: Infinity, x1: -1, y1: -1, area: 0 };
+    o.parts.push(...g.parts);
+    o.x0 = Math.min(o.x0, g.x0); o.y0 = Math.min(o.y0, g.y0);
+    o.x1 = Math.max(o.x1, g.x1); o.y1 = Math.max(o.y1, g.y1);
+    o.area += g.area;
+    out.set(r, o);
+  });
+  return [...out.values()];
+}
+
 /* ---------- normalise / thin / match ---------- */
 
 // Crop a glyph's own pixels, fit into N×N keeping aspect ratio (max-pooling when shrinking).
@@ -208,6 +248,9 @@ function prep(mask) {
 
 // Symmetric chamfer distance plus a penalty for strokes with no counterpart at all
 // (a missing slash or corner square is small on average but decisive).
+// above these a mark is not taken for a digit (logos, letters); calibrated on synthetic tests
+const REJECT_SHAPE = 2.9, REJECT_SCORE = 4.0;
+const MIN_H = 10; // px (after downscaling): smaller marks are noise
 const CAP = 8, MISS = 2.5, MISS_W = 6;
 function oneWay(pts, dt) {
   if (!pts.length) return { sq: CAP * CAP, miss: 1 };
@@ -254,11 +297,21 @@ async function svgTemplate(d, stroke) {
 export async function loadTemplates() {
   if (TEMPLATES) return TEMPLATES;
   const list = [];
+  const add = (d, src, m) => {
+    list.push({ d, src, ...prep(m) });
+    list.push({ d, src: src + "-mirrored", mirrored: true, ...prep(mirror(m)) }); // right-to-left texts mirror glyphs
+  };
   // thin and thick renderings: very bold strokes fill small holes, which changes the skeleton
-  for (let d = 0; d < 13; d++) for (const sw of [2.2, 4, 5.5]) list.push({ d, src: "svg" + sw, ...prep(await svgTemplate(d, sw)) });
-  WIKI_TEMPLATES.forEach((hex, d) => hex && list.push({ d, src: "wiki", ...prep(unpack(hex)) }));
+  for (let d = 0; d < 13; d++) for (const sw of [2.2, 4, 5.5]) add(d, "svg" + sw, await svgTemplate(d, sw));
+  WIKI_TEMPLATES.forEach((hex, d) => hex && add(d, "wiki", unpack(hex)));
   TEMPLATES = list;
   return list;
+}
+
+function mirror(m) {
+  const o = new Uint8Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) o[y * N + x] = m[y * N + N - 1 - x];
+  return o;
 }
 
 function classify(norm) {
@@ -266,7 +319,7 @@ function classify(norm) {
   const best = new Map();
   for (const t of TEMPLATES) {
     const r = dist(g, t);
-    if (!best.has(t.d) || r.score < best.get(t.d).score) best.set(t.d, r);
+    if (!best.has(t.d) || r.score < best.get(t.d).score) best.set(t.d, { ...r, mirrored: !!t.mirrored });
   }
   return [...best.entries()].map(([d, r]) => ({ d, ...r })).sort((a, b) => a.score - b.score);
 }
@@ -274,7 +327,9 @@ function classify(norm) {
 /* ---------- main ---------- */
 
 // Returns { lines: [{ glyphs: [...] }], mask, w, h, scale, ox, oy, dark }.
-// A glyph is { kind: "digit" | "point" | "minus", box, norm, candidates, unsure }.
+// Glyphs are in visual order, left to right.
+// A glyph is { kind: "digit" | "point" | "minus", box, norm, candidates, unsure, reject }
+// (reject = looks like no Nivean digit, e.g. part of a logo; kept so the user can include it).
 export function parseImage(img, { crop = null, ink = "auto" } = {}) {
   if (!TEMPLATES) throw new Error("templates not loaded");
   const gray = imageToGray(img, crop);
@@ -291,20 +346,19 @@ export function parseImage(img, { crop = null, ink = "auto" } = {}) {
     return !(fill < 0.12 && inside >= 3);
   });
 
-  let groups = groupParts(comps, 1);
-  const hm = median(groups.filter((g) => g.area >= minArea * 4).map((g) => g.y1 - g.y0 + 1)) || 10;
-  groups = groupParts(groups.flatMap((g) => g.parts), Math.max(2, Math.round(hm * 0.12)));
+  let groups = mergeShapes(groupParts(comps, 1));
 
-  // lines: cluster by vertical overlap, top to bottom
+  // lines: cluster by vertical overlap with each line's first member (its band does not grow,
+  // so a tall logo can't chain several lines together), top to bottom
   groups.sort((a, b) => a.y0 + a.y1 - (b.y0 + b.y1));
   const lines = [];
   for (const g of groups) {
     const gh = g.y1 - g.y0 + 1;
     const line = lines.find((l) => {
       const ov = Math.min(l.y1, g.y1) - Math.max(l.y0, g.y0);
-      return ov > 0.4 * Math.min(gh, l.y1 - l.y0 + 1);
+      return ov > 0.4 * Math.min(gh, l.y1 - l.y0 + 1) && Math.abs(g.y0 + g.y1 - l.y0 - l.y1) / 2 < 0.6 * (l.y1 - l.y0 + 1);
     });
-    if (line) { line.items.push(g); line.y0 = Math.min(line.y0, g.y0); line.y1 = Math.max(line.y1, g.y1); }
+    if (line) line.items.push(g);
     else lines.push({ items: [g], y0: g.y0, y1: g.y1 });
   }
   // tiny marks (points) may sit just below a line: attach them to the nearest line above
@@ -318,7 +372,7 @@ export function parseImage(img, { crop = null, ink = "auto" } = {}) {
     }
   }
 
-  const out = [];
+  let out = [];
   for (const l of lines) {
     const lh = median(l.items.map((g) => g.y1 - g.y0 + 1).filter((v, _, a) => v >= Math.max(...a) * 0.5));
     const items = l.items.sort((a, b) => a.x0 - b.x0);
@@ -331,18 +385,41 @@ export function parseImage(img, { crop = null, ink = "auto" } = {}) {
         if (g.y0 > l.y0 + (l.y1 - l.y0) * 0.35) glyphs.push({ kind: "point", box });
         continue;
       }
-      if (gh < lh * 0.3 && gw > gh * 2.5 && glyphs.length === 0) { glyphs.push({ kind: "minus", box }); continue; }
+      if (gh < lh * 0.3 && gw > gh * 2.5) { glyphs.push({ kind: "minus", box }); continue; }
       if (gh < lh * 0.4 && gw < lh * 0.4) continue; // too small to be a digit
       const norm = normalise(lab, w, g);
       const candidates = classify(norm);
       const [a, b] = candidates;
-      const unsure = a.score > 3.0 || b.score - a.score < 0.5;
-      glyphs.push({ kind: "digit", box, norm, candidates, unsure });
+      const reject = a.shape > REJECT_SHAPE || a.score > REJECT_SCORE;
+      const unsure = !reject && (a.score > 3.0 || b.score - a.score < 0.5);
+      glyphs.push({ kind: "digit", box, norm, candidates, unsure, reject });
     }
-    const digits = glyphs.filter((x) => x.kind === "digit");
-    // a line where nothing looks like a Nivean digit is probably ordinary text: skip it
-    if (digits.length && median(digits.map((x) => x.candidates[0].shape)) <= 2.4) out.push({ glyphs });
+    const good = (x) => x && x.kind === "digit" && !x.reject;
+    const digits = glyphs.filter(good);
+    // a point must sit between two digits; a minus at either end of the number
+    const kept = glyphs.filter((x, i) => {
+      if (x.kind === "point") return glyphs.slice(0, i).some(good) && glyphs.slice(i + 1).some(good);
+      if (x.kind === "minus") return !glyphs.slice(0, i).some(good) || !glyphs.slice(i + 1).some(good);
+      return true;
+    });
+    if (lh < MIN_H) continue;
+    // split the line into separate numbers at gaps that are wide both absolutely and
+    // compared with the usual spacing on this line
+    const gaps = kept.slice(1).map((x, i) => x.box.x - (kept[i].box.x + kept[i].box.w));
+    const usual = median(gaps);
+    const runs = [[]];
+    kept.forEach((x, i) => {
+      if (i && gaps[i - 1] > 1.4 * lh && gaps[i - 1] > 3 * usual) runs.push([]);
+      runs.at(-1).push(x);
+    });
+    for (const run of runs) {
+      const ds = run.filter(good);
+      // a run where nothing looks like a Nivean digit is probably ordinary text: skip it
+      if (ds.length && median(ds.map((x) => x.candidates[0].shape)) <= 2.4) out.push({ glyphs: run, sure: ds.some((x) => !x.unsure) });
+    }
   }
+  // stray marks: drop numbers made only of unsure guesses when the picture has a confident one
+  if (out.some((r) => r.sure)) out = out.filter((r) => r.sure);
   return { lines: out, mask, w, h, scale: gray.scale, ox: gray.ox, oy: gray.oy, dark };
 }
 

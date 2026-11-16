@@ -1,5 +1,5 @@
 // "Read image" tab: load a picture, find Nivean numerals, let the user fix guesses.
-import { DIGITS, NAMES, glyphSVG, glyphString } from "./glyphs.js";
+import { DIGITS, NAMES, glyphSVG, glyphString, glyphDir } from "./glyphs.js";
 import { parseBase, fmtShow, group10 } from "./numbers.js";
 import { loadTemplates, parseImage } from "./parser.js";
 
@@ -137,7 +137,7 @@ export function initRead({ openInConverter }) {
     }
     const ms = Math.round(performance.now() - t0);
     st.lines = st.result.lines.map((l) =>
-      l.glyphs.map((g) => ({ g, ch: g.kind === "digit" ? DIGITS[g.candidates[0].d] : g.kind === "point" ? "." : "-" }))
+      l.glyphs.map((g) => ({ g, ch: g.kind === "digit" ? (g.reject ? "x" : DIGITS[g.candidates[0].d]) : g.kind === "point" ? "." : "-" }))
     );
     const n = st.lines.reduce((a, l) => a + l.filter((x) => x.g.kind === "digit").length, 0);
     const unsure = st.lines.reduce((a, l) => a + l.filter((x) => x.g.unsure).length, 0);
@@ -219,6 +219,7 @@ export function initRead({ openInConverter }) {
     return { x: r.ox + b.x / r.scale, y: r.oy + b.y / r.scale, w: b.w / r.scale, h: b.h / r.scale };
   };
   window.addEventListener("resize", () => st.img && !$("#tab-read").hidden && draw());
+  document.addEventListener("glyphdir", () => st.lines.length && renderLines());
 
   /* ----- results ----- */
 
@@ -240,6 +241,7 @@ export function initRead({ openInConverter }) {
     if (!st.lines.length) { box.innerHTML = ""; return; }
     box.innerHTML = st.lines
       .map((line, li) => `<div class="read-line" data-line="${li}">
+        <div class="chips-head note">${glyphDir() === "rtl" ? "Picture order · read ⇠ from the right" : "Picture order · read from the left ⇢"}</div>
         <div class="chips">${line.map((x, gi) => chip(x, li, gi)).join("")}</div>
         <div class="read-value" id="read-val-${li}"></div>
       </div>`)
@@ -258,7 +260,7 @@ export function initRead({ openInConverter }) {
     opts.push(`<option value="x"${ch === "x" ? " selected" : ""}>ignore this</option>`);
     const d = DIGITS.indexOf(ch);
     const shown = d >= 0 ? glyphSVG(d) : `<span class="g-sep">${ch === "x" ? "×" : ch === "-" ? "−" : "."}</span>`;
-    const changed = g.kind === "digit" && ch !== DIGITS[g.candidates[0].d];
+    const changed = g.kind === "digit" && ch !== (g.reject ? "x" : DIGITS[g.candidates[0].d]);
     const cls = ["chip", g.unsure && !changed ? "unsure" : "", ch === "x" ? "ignored" : "", changed ? "fixed" : ""].join(" ");
     return `<label class="${cls}">
       <img src="${thumb(g)}" alt="">
@@ -283,7 +285,10 @@ export function initRead({ openInConverter }) {
   });
 
   function renderValue(li) {
-    const text = st.lines[li].map((x) => x.ch).filter((c) => c !== "x").join("").replace(/(?!^)-/g, "");
+    // chips are in picture order (left to right); read them in the writing direction
+    let chars = st.lines[li].map((x) => x.ch).filter((c) => c !== "x");
+    if (glyphDir() === "rtl") chars = chars.reverse();
+    const text = chars.join("").replace(/(?!^)-/g, "");
     const v = parseBase(text, 13);
     const el = $("#read-val-" + li);
     if (!text || Number.isNaN(v)) {
@@ -314,7 +319,7 @@ export function initRead({ openInConverter }) {
     for (const [li, line] of lines.entries()) {
       let px = 40;
       const py = 40 + li * (size + 50);
-      for (const ch of line) {
+      for (const ch of glyphDir() === "rtl" ? [...line].reverse() : line) {
         if (ch === ".") {
           x.fillStyle = "#2a2a35";
           x.beginPath(); x.arc(px + 4, py + size - 6, 5, 0, 7); x.fill();

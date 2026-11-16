@@ -17,6 +17,7 @@
         <h1>Nivean Calculator</h1>
         <p class="sub">Base-13 numbers &amp; units of Niveus</p>
       </div>
+      <button class="dir-toggle" id="dir-toggle" aria-label="Glyph writing direction"></button>
     </div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="numbers" aria-selected="true">Numbers</button>
@@ -110,7 +111,8 @@
       <div class="card prose">
         <h3 style="margin-top:0">Tips</h3>
         <ul>
-          <li>Glyphs should be upright and separated by a little space; one number per line.</li>
+          <li>Numbers are read in the direction set at the top (right to left by default, as Niveans write). Mirrored glyphs are recognised too.</li>
+          <li>Glyphs should be upright and separated by a little space; one number per line. A wide gap starts a new number.</li>
           <li>If other things in the picture get in the way, use <b>Select area</b> and drag a box around the numerals.</li>
           <li>Amber boxes are guesses it is unsure about. Tap a digit below the picture to correct it (the list shows the best and second guess).</li>
           <li>A small dot low on the line is read as a point. Ordinary text lines are skipped.</li>
@@ -181,6 +183,7 @@
       <div class="card prose">
         <h2>About the Niveans' system</h2>
         <p>The <a href="https://isowars.miraheze.org/wiki/Niveans" target="_blank" rel="noopener">Niveans</a> of the planet Niveus have thirteen fingers, so they count in <strong>base 13</strong> (tridecimal). Digits ten, eleven and twelve are written here as <b>A</b>, <b>B</b> and <b>C</b>.</p>
+        <p>Nivean numbers are written <strong>right to left</strong>: the most significant digit is on the right. A date reading "NIVEUS 20099AE" shows the glyphs 1&nbsp;C&nbsp;1&nbsp;9 from left to right, which read from the right are 91C1 in base 13 = 9·2197 + 1·169 + 12·13 + 1 = 20099. In that picture the C is also <em>mirrored</em> (its corner squares sit top-left, top-right and bottom-left, unlike the wiki chart), as glyphs often are in right-to-left writing; the image reader accepts both forms. Glyph rows in this app follow the direction switch at the top; base-13 text such as 91C1 always stays in the usual left-to-right notation.</p>
         <h3>Units from the wiki</h3>
         <table class="ref">
           <tr><th>Unit</th><th>Definition</th><th>In base 13</th></tr>

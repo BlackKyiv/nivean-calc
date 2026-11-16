@@ -29,10 +29,22 @@ export function glyphSVG(d, cls = "g") {
   return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${BODIES[d]}</svg>`;
 }
 
-// Render a base-13 string ("-1A.3") as glyphs.
+// Writing direction of glyph rows. Niveans write numbers right to left: the most significant
+// digit is on the right. "ltr" draws them in the European order instead.
+let dir = "rtl";
+export const glyphDir = () => dir;
+export function setGlyphDir(d) {
+  dir = d === "ltr" ? "ltr" : "rtl";
+  document.documentElement.dataset.glyphDir = dir;
+  document.dispatchEvent(new CustomEvent("glyphdir", { detail: dir }));
+}
+
+// Render a base-13 string ("-1A.3") as glyphs, in the current writing direction.
 export function glyphString(s) {
   let out = "";
-  for (const ch of s) {
+  let chars = [...s];
+  if (dir === "rtl") chars = chars.reverse().map((c) => (c === "(" ? ")" : c === ")" ? "(" : c));
+  for (const ch of chars) {
     const d = DIGITS.indexOf(ch.toUpperCase());
     if (d >= 0) out += glyphSVG(d);
     else if (ch === ".") out += `<span class="g-sep">.</span>`;
