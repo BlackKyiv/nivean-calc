@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nivean Calculator</title>
+  <meta name="description" content="Base-13 numbers and units of measurement of the Niveans (Iso Wars universe).">
+  <meta name="theme-color" content="#0f1720">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true" data-glyph="12"></span>
+      <div>
+        <h1>Nivean Calculator</h1>
+        <p class="sub">Base-13 numbers &amp; units of Niveus</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="numbers" aria-selected="true">Numbers</button>
+      <button role="tab" data-tab="calc">Calculator</button>
+      <button role="tab" data-tab="units">Units</button>
+      <button role="tab" data-tab="about">About</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- NUMBERS -->
+    <section id="tab-numbers" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Number converter</h2>
+        <div class="field">
+          <label for="num-dec">Decimal (base 10)</label>
+          <input id="num-dec" inputmode="decimal" autocomplete="off" spellcheck="false" value="2197">
+        </div>
+        <div class="swap" aria-hidden="true">⇅</div>
+        <div class="field">
+          <label for="num-tri">Nivean (base 13, digits 0–9 A B C)</label>
+          <input id="num-tri" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </div>
+        <p id="num-err" class="err" hidden></p>
+        <div class="glyph-out" id="num-glyphs" aria-live="polite"></div>
+        <div class="keypad mini" id="num-pad" aria-label="Nivean digit keypad"></div>
+        <dl class="breakdown" id="num-breakdown"></dl>
+      </div>
+
+      <div class="card">
+        <h2>Nivean digits</h2>
+        <div class="digit-table" id="digit-table"></div>
+      </div>
+    </section>
+
+    <!-- CALCULATOR -->
+    <section id="tab-calc" class="panel" role="tabpanel" hidden>
+      <div class="card calc">
+        <div class="calc-head">
+          <h2>Base-13 calculator</h2>
+          <div class="seg" role="radiogroup" aria-label="Input base">
+            <button data-mode="13" aria-pressed="true">Enter base 13</button>
+            <button data-mode="10" aria-pressed="false">Enter base 10</button>
+          </div>
+        </div>
+        <div class="screen">
+          <div class="expr" id="calc-expr" aria-live="polite"></div>
+          <div class="expr-glyphs" id="calc-expr-glyphs"></div>
+          <div class="result">
+            <div class="res-glyphs" id="calc-res-glyphs"></div>
+            <div class="res-line"><span class="tag">13</span><span id="calc-res-tri">0</span></div>
+            <div class="res-line"><span class="tag">10</span><span id="calc-res-dec">0</span></div>
+          </div>
+        </div>
+        <div class="keypad" id="calc-pad"></div>
+        <p class="hint">Keyboard works too: digits, A/B/C, + − * / ( ) . , Enter, Backspace, Esc.</p>
+      </div>
+    </section>
+
+    <!-- UNITS -->
+    <section id="tab-units" class="panel" role="tabpanel" hidden>
+      <div class="card">
+        <h2>Unit converter</h2>
+        <div class="seg wide" role="radiogroup" aria-label="Quantity" id="unit-cats">
+          <button data-cat="length" aria-pressed="true">Length</button>
+          <button data-cat="time" aria-pressed="false">Time</button>
+          <button data-cat="angle" aria-pressed="false">Angle</button>
+        </div>
+        <div class="unit-input">
+          <div class="field grow">
+            <label for="unit-val">Value</label>
+            <input id="unit-val" inputmode="decimal" autocomplete="off" spellcheck="false" value="1">
+          </div>
+          <div class="field">
+            <label for="unit-base">Written in</label>
+            <select id="unit-base">
+              <option value="10">base 10</option>
+              <option value="13">base 13</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="unit-from">Unit</label>
+            <select id="unit-from"></select>
+          </div>
+        </div>
+        <p id="unit-err" class="err" hidden></p>
+        <div class="glyph-out small" id="unit-in-glyphs"></div>
+        <table class="results" id="unit-results">
+          <thead><tr><th>Unit</th><th>Base 10</th><th>Base 13</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div id="compass-wrap" hidden>
+          <h3>On the Nivean compass</h3>
+          <div class="compass-row">
+            <svg id="compass" viewBox="-110 -110 220 220" role="img" aria-label="Nivean compass"></svg>
+            <p id="compass-text" class="note"></p>
+          </div>
+        </div>
+      </div>
+
+      <details class="card settings">
+        <summary>Assumptions (editable)</summary>
+        <p class="note">The wiki gives only approximate values. Change them here; they are saved in this browser.</p>
+        <div class="unit-input">
+          <div class="field grow">
+            <label for="set-procul">1 procul in metres</label>
+            <input id="set-procul" inputmode="decimal" value="9.9">
+          </div>
+          <div class="field grow">
+            <label for="set-day">1 Nivean day in Earth hours</label>
+            <input id="set-day" inputmode="decimal" value="11">
+          </div>
+        </div>
+        <button class="link" id="set-reset">Reset to defaults</button>
+      </details>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="tab-about" class="panel" role="tabpanel" hidden>
+      <div class="card prose">
+        <h2>About the Niveans' system</h2>
+        <p>The <a href="https://isowars.miraheze.org/wiki/Niveans" target="_blank" rel="noopener">Niveans</a> of the planet Niveus have thirteen fingers, so they count in <strong>base 13</strong> (tridecimal). Digits ten, eleven and twelve are written here as <b>A</b>, <b>B</b> and <b>C</b>.</p>
+        <h3>Units from the wiki</h3>
+        <table class="ref">
+          <tr><th>Unit</th><th>Definition</th><th>In base 13</th></tr>
+          <tr><td>procul</td><td>a bit less than 10 m</td><td>1</td></tr>
+          <tr><td>ampliprocul</td><td>2197 procul (13³), about 22 km</td><td>1000 procul</td></tr>
+          <tr><td>Nivean day</td><td>about 11 Earth hours</td><td>1</td></tr>
+          <tr><td>aeta</td><td>⅐ of a year = 182 Nivean days</td><td>110 days</td></tr>
+          <tr><td>Nivean year</td><td>1274 Nivean days</td><td>770 days</td></tr>
+          <tr><td>pars</td><td>1⁄1352 of a full circle</td><td>1</td></tr>
+          <tr><td>compass direction</td><td>⅛ circle = 169 pars (13²)</td><td>100 pars</td></tr>
+        </table>
+        <h3>Assumptions made here</h3>
+        <ul>
+          <li><b>Procul = 9.9 m</b> by default. "A bit less than 10 m" and "2197 procul ≈ 22 km" pull in different directions (22 km ÷ 2197 ≈ 10.01 m), so 9.9 m is a compromise. You can change it under Units → Assumptions.</li>
+          <li><b>Nivean day = 11 h</b> by default. The wiki also says an aeta (182 days) is about 91 Earth days, which would mean 12-hour days. Editable too.</li>
+          <li>The <b>radix point</b> (the "decimal" point for fractions) has no known Nivean glyph, so a dot is used.</li>
+          <li>The 8 compass directions are not named on the wiki, so they are numbered 1–8 clockwise from the first.</li>
+        </ul>
+        <p class="note">Fan-made tool. Iso Wars and the Niveans belong to their creators.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
