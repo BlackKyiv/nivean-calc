@@ -198,7 +198,8 @@ main { max-width: 760px; margin: 0 auto; padding: 16px; }
 .c-ring { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; }
 .c-major { stroke: var(--text); stroke-width: 2; }
 .c-minor { stroke: var(--muted); stroke-width: .8; }
-.c-label { fill: var(--muted); font: 600 13px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+.c-label { fill: var(--muted); font: 600 12px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+.c-label.c-main { fill: var(--text); font-size: 16px; font-weight: 700; }
 .c-needle { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
 .c-hub { fill: var(--accent); }
 .settings summary { cursor: pointer; font-weight: 600; min-height: 32px; }

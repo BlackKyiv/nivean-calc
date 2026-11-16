@@ -16,7 +16,7 @@ glyphs; the app does the same by default, with a switch for left-to-right chart 
   13 glyphs cut from the wiki's numeral chart, `templates-wiki.js`). Unsure reads are flagged and every
   digit can be corrected by tapping it; an area can be selected to ignore clutter.
 - **Units**: length (procul, ampliprocul), time (Nivean day, aeta, Nivean year) and angle (pars,
-  compass directions) to and from Earth units. Values can be typed in base 10 or 13.
+  cardinal steps, travel bearings like `N+169`, with a compass) to and from Earth units. Values can be typed in base 10 or 13.
 
 Plain HTML/CSS/JS (ES modules), no build step and no dependencies.
 
@@ -32,13 +32,19 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 GitHub Pages serves the `main` branch root, so pushing to `main` publishes (about a minute).
 
-## Assumptions
+## Units and assumptions
 
-The wiki gives approximate values, so some are chosen here (editable in the app, under Units → Assumptions):
+Sources: the [wiki](https://isowars.miraheze.org/wiki/Niveans) and the Iso Wars FAQ (the FAQ wins where
+they differ). Approximate values are editable in the app (Units → Assumptions):
 
-| Value | Default | Why |
+| Value | Default | Source |
 |---|---|---|
-| 1 procul | 9.9 m | "a bit less than 10 m"; 2197 procul "around 22 km" implies ~10.0 m |
-| 1 Nivean day | 11 h | stated; the wiki's "aeta ≈ 91 Earth days" would imply 12 h |
+| 1 procul | 9.6 m | FAQ ("approximately 9.6 m"; ampliprocul = 2197 procul ≈ 21 km) |
+| 1 Nivean day | 11 h | wiki and FAQ |
+| 1 Nivean year | 982 Nivean days | FAQ (the wiki's older figure was 1274) |
+| 1 aeta | ⅐ year ≈ 140.3 days | FAQ: 7 aeta per year |
+
+Bearings: 1352 pars per circle, 8 cardinal directions (N, NE … NW), and the Nivean travel notation
+North/South ± pars (positive clockwise, negative counterclockwise), e.g. N +169 = NE, S +169 = SW.
 
 Fan-made; Iso Wars and the Niveans belong to their creators.

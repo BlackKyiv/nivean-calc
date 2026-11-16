@@ -163,15 +163,19 @@
 
       <details class="card settings">
         <summary>Assumptions (editable)</summary>
-        <p class="note">The wiki gives only approximate values. Change them here; they are saved in this browser.</p>
+        <p class="note">The sources give approximate values. Change them here; they are saved in this browser.</p>
         <div class="unit-input">
           <div class="field grow">
             <label for="set-procul">1 procul in metres</label>
-            <input id="set-procul" inputmode="decimal" value="9.9">
+            <input id="set-procul" inputmode="decimal" value="9.6">
           </div>
           <div class="field grow">
             <label for="set-day">1 Nivean day in Earth hours</label>
             <input id="set-day" inputmode="decimal" value="11">
+          </div>
+          <div class="field grow">
+            <label for="set-year">1 Nivean year in Nivean days</label>
+            <input id="set-year" inputmode="decimal" value="982">
           </div>
         </div>
         <button class="link" id="set-reset">Reset to defaults</button>
@@ -184,23 +188,25 @@
         <h2>About the Niveans' system</h2>
         <p>The <a href="https://isowars.miraheze.org/wiki/Niveans" target="_blank" rel="noopener">Niveans</a> of the planet Niveus have thirteen fingers, so they count in <strong>base 13</strong> (tridecimal). Digits ten, eleven and twelve are written here as <b>A</b>, <b>B</b> and <b>C</b>.</p>
         <p>Nivean numbers are written <strong>right to left</strong>: the most significant digit is on the right. A date reading "NIVEUS 20099AE" shows the glyphs 1&nbsp;C&nbsp;1&nbsp;9 from left to right, which read from the right are 91C1 in base 13 = 9·2197 + 1·169 + 12·13 + 1 = 20099. The glyphs are also <em>mirrored</em> in right-to-left writing: there the C has its corner squares top-left, top-right and bottom-left (the wiki chart has bottom-right), and the 2's slash runs the other way. With the switch at the top on <b>RTL</b>, this app writes numbers right to left with mirrored glyphs; <b>LTR</b> uses the chart's forms in European order. The image reader accepts both. Base-13 text such as 91C1 always stays in the usual left-to-right notation.</p>
-        <h3>Units from the wiki</h3>
+        <h3>Units</h3>
         <table class="ref">
           <tr><th>Unit</th><th>Definition</th><th>In base 13</th></tr>
-          <tr><td>procul</td><td>a bit less than 10 m</td><td>1</td></tr>
-          <tr><td>ampliprocul</td><td>2197 procul (13³), about 22 km</td><td>1000 procul</td></tr>
+          <tr><td>procul</td><td>about 9.6 m</td><td>1</td></tr>
+          <tr><td>ampliprocul</td><td>2197 procul (13³), about 21 km</td><td>1000 procul</td></tr>
           <tr><td>Nivean day</td><td>about 11 Earth hours</td><td>1</td></tr>
-          <tr><td>aeta</td><td>⅐ of a year = 182 Nivean days</td><td>110 days</td></tr>
-          <tr><td>Nivean year</td><td>1274 Nivean days</td><td>770 days</td></tr>
-          <tr><td>pars</td><td>1⁄1352 of a full circle</td><td>1</td></tr>
-          <tr><td>compass direction</td><td>⅛ circle = 169 pars (13²)</td><td>100 pars</td></tr>
+          <tr><td>aeta</td><td>a month-like unit: ⅐ of a year, about 140 Nivean days</td><td>≈ AA days</td></tr>
+          <tr><td>Nivean year</td><td>about 982 Nivean days (7 aeta)</td><td>≈ 5A7 days</td></tr>
+          <tr><td>pars</td><td>1⁄1352 of a full circle (the Nivean "degree")</td><td>1</td></tr>
+          <tr><td>cardinal step</td><td>⅛ circle = 169 pars (13²), e.g. N → NE</td><td>100 pars</td></tr>
         </table>
-        <h3>Assumptions made here</h3>
+        <h3>Bearings</h3>
+        <p>A Nivean compass has 1352 pars and 8 cardinal directions, shown here with the human names N, NE, E, SE, S, SW, W and NW. For travel, Niveans name only <b>North</b> or <b>South</b> and add how far off that axis the heading is: <b>positive pars clockwise, negative pars counterclockwise</b>. So NE is <b>N +169</b>, East is <b>N +338</b> (or S −338), SW is <b>S +169</b> and NW is <b>N −169</b>. A million years of crossing endless ice sheets, where getting lost in a blizzard means death, have hardwired precise bearings into the Nivean brain.</p>
+        <p>In <b>Units → Angle</b>, pick "travel bearing" to type a heading such as <code>N+169</code> or <code>S-40</code>; every angle is also shown in this notation and on the compass.</p>
+        <h3>Sources and assumptions</h3>
         <ul>
-          <li><b>Procul = 9.9 m</b> by default. "A bit less than 10 m" and "2197 procul ≈ 22 km" pull in different directions (22 km ÷ 2197 ≈ 10.01 m), so 9.9 m is a compromise. You can change it under Units → Assumptions.</li>
-          <li><b>Nivean day = 11 h</b> by default. The wiki also says an aeta (182 days) is about 91 Earth days, which would mean 12-hour days. Editable too.</li>
+          <li>Values come from the <a href="https://isowars.miraheze.org/wiki/Niveans" target="_blank" rel="noopener">wiki</a> and the Iso Wars FAQ. Where they differ, the FAQ wins: the wiki's older figures were a procul "a bit less than 10 m", a year of 1274 days and an aeta of 182 days.</li>
+          <li>Procul (9.6 m), day (11 h) and year (982 days) are approximate; change them under Units → Assumptions. An aeta is always ⅐ of the year.</li>
           <li>The <b>radix point</b> (the "decimal" point for fractions) has no known Nivean glyph, so a dot is used.</li>
-          <li>The 8 compass directions are not named on the wiki, so they are numbered 1–8 clockwise from the first.</li>
         </ul>
         <p class="note">Fan-made tool. Iso Wars and the Niveans belong to their creators.</p>
       </div>

@@ -267,12 +267,41 @@ document.addEventListener("keydown", (e) => {
 
 /* ---------- units ---------- */
 
-const DEFAULTS = { procul: 9.9, day: 11 };
+const DEFAULTS = { procul: 9.6, day: 11, year: 982 };
 const settings = { ...DEFAULTS, ...store.get("settings", {}) };
+
+/* Bearings. Pars are counted clockwise from North, 0–1351. Niveans travel by North or South
+   plus an offset: positive pars clockwise, negative counterclockwise ("N +169" = NE). */
+const FULL = 1352, QUARTER = 338, STEP = 169;
+const NAMES8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const wrapPars = (p) => ((p % FULL) + FULL) % FULL;
+
+// "N+169", "s -40", "S−A0" (number in the given base) → pars clockwise from North
+function parseBearing(raw, base) {
+  const m = String(raw).trim().replace(/−/g, "-").match(/^([NnSs])\s*([+-]?)\s*([0-9A-Ca-c.,]*)$/);
+  if (!m) return NaN;
+  const off = m[3] === "" ? 0 : parseBase(m[3], base);
+  if (Number.isNaN(off)) return NaN;
+  return wrapPars((m[1].toUpperCase() === "N" ? 0 : FULL / 2) + (m[2] === "-" ? -off : off));
+}
+
+// pars → { axis, off } using the nearer of the N and S axes (E/W are written from North)
+function travelBearing(pars) {
+  const p = wrapPars(pars);
+  if (p <= QUARTER) return { axis: "N", off: p };
+  if (p >= FULL - QUARTER) return { axis: "N", off: p - FULL };
+  return { axis: "S", off: p - FULL / 2 };
+}
+function fmtBearing(pars, base) {
+  const { axis, off } = travelBearing(pars);
+  const r = fmtBase(Math.abs(off), base, 3);
+  return `${r.approx ? "≈ " : ""}${axis} ${off < 0 ? "−" : "+"}${r.text}`;
+}
 
 // Each unit: id, name, note, size in the category's base unit (m, s, °).
 function unitDefs() {
-  const P = settings.procul, D = settings.day * 3600;
+  const P = settings.procul, D = settings.day * 3600, Y = settings.year;
+  const aetaDays = Y / 7;
   return {
     length: [
       { id: "procul", name: "procul", nivean: true, size: P },
@@ -284,16 +313,17 @@ function unitDefs() {
     ],
     time: [
       { id: "nday", name: "Nivean day", nivean: true, size: D },
-      { id: "aeta", name: "aeta", nivean: true, note: "182 Nivean days", size: 182 * D },
-      { id: "nyear", name: "Nivean year", nivean: true, note: "1274 Nivean days", size: 1274 * D },
+      { id: "aeta", name: "aeta", nivean: true, note: `⅐ year ≈ ${+aetaDays.toFixed(1)} Nivean days`, size: aetaDays * D },
+      { id: "nyear", name: "Nivean year", nivean: true, note: `${Y} Nivean days`, size: Y * D },
       { id: "min", name: "minute", size: 60 },
       { id: "h", name: "hour", size: 3600 },
       { id: "eday", name: "Earth day", size: 86400 },
       { id: "eyear", name: "Earth year", note: "365.2425 days", size: 365.2425 * 86400 },
     ],
     angle: [
+      { id: "bearing", name: "travel bearing", nivean: true, note: "N/S ± pars, e.g. N +169 = NE", size: 360 / 1352, bearing: true },
       { id: "pars", name: "pars", nivean: true, size: 360 / 1352 },
-      { id: "dir", name: "compass direction", nivean: true, note: "⅛ circle = 169 pars", size: 45 },
+      { id: "dir", name: "cardinal step", nivean: true, note: "⅛ circle = 169 pars (N → NE)", size: 45 },
       { id: "turn", name: "full circle", nivean: true, note: "1352 pars", size: 360 },
       { id: "deg", name: "degree", size: 1 },
       { id: "rad", name: "radian", size: 180 / Math.PI },
@@ -316,22 +346,28 @@ function unitRender() {
   const defs = unitDefs()[unitState.cat];
   const base = +$("#unit-base").value;
   const raw = $("#unit-val").value;
-  const v = parseBase(raw, base);
-  const bad = raw.trim() !== "" && Number.isNaN(v);
-  $("#unit-err").hidden = !bad;
-  $("#unit-err").textContent = bad ? (base === 13 ? "Base 13 uses only 0–9, A, B, C." : "Not a decimal number.") : "";
-  $("#unit-in-glyphs").innerHTML = Number.isFinite(v) ? glyphString(fmtBase(v, 13, 6).text) : "";
   const from = defs.find((u) => u.id === $("#unit-from").value) || defs[0];
+  const v = from.bearing ? parseBearing(raw, base) : parseBase(raw, base);
+  const bad = raw.trim() !== "" && Number.isNaN(v);
+  $("#unit-val").placeholder = from.bearing ? "e.g. N+169 or S-40" : "";
+  $("#unit-val").inputMode = from.bearing ? "text" : "decimal";
+  $("#unit-err").hidden = !bad;
+  $("#unit-err").textContent = !bad ? "" : from.bearing
+    ? "Write N or S, then + (clockwise) or − (counterclockwise) and the pars, e.g. N+169."
+    : base === 13 ? "Base 13 uses only 0–9, A, B, C." : "Not a decimal number.";
+  const shownIn = from.bearing ? Math.abs(travelBearing(v).off) : v;
+  $("#unit-in-glyphs").innerHTML = Number.isFinite(v) ? glyphString(fmtBase(shownIn, 13, 6).text) : "";
   const baseVal = Number.isFinite(v) ? v * from.size : NaN;
   $("#unit-results tbody").innerHTML = defs
     .map((u) => {
       const x = baseVal / u.size;
       const ok = Number.isFinite(x);
-      const tri = ok ? fmtBase(x, 13, 4) : { text: "—" };
+      const tri = ok ? fmtBase(u.bearing ? Math.abs(travelBearing(x).off) : x, 13, 4) : { text: "—" };
+      const show = (b, f) => (u.bearing ? fmtBearing(x, b) : fmtShow(x, b, f));
       return `<tr class="${u.id === from.id ? "from" : ""}${u.nivean ? " niv" : ""}">
         <th>${u.name}${u.nivean ? ' <span class="star" title="Nivean unit">✦</span>' : ""}${u.note ? `<small>${u.note}</small>` : ""}</th>
-        <td class="num"><span class="nw">${ok ? group10(fmtShow(x, 10, 5)) : "—"}</span></td>
-        <td class="num tri"><span class="nw">${ok ? fmtShow(x, 13, 4) : "—"}</span>${ok && tri.text.length <= 9 ? `<div class="mini-glyphs">${glyphString(tri.text)}</div>` : ""}</td>
+        <td class="num"><span class="nw">${ok ? group10(show(10, 5)) : "—"}</span></td>
+        <td class="num tri"><span class="nw">${ok ? show(13, 4) : "—"}</span>${ok && tri.text.length <= 9 ? `<div class="mini-glyphs">${glyphString(tri.text)}</div>` : ""}</td>
       </tr>`;
     })
     .join("");
@@ -342,26 +378,32 @@ function unitRender() {
 }
 
 function drawCompass(deg) {
-  const pars = (((deg / (360 / 1352)) % 1352) + 1352) % 1352;
+  const pars = wrapPars(deg / (360 / FULL));
+  const pt = (r, p) => {
+    const a = ((p * 360) / FULL - 90) * (Math.PI / 180);
+    return [(r * Math.cos(a)).toFixed(2), (r * Math.sin(a)).toFixed(2)];
+  };
   let s = `<circle r="100" class="c-ring"/>`;
-  for (let i = 0; i < 104; i++) {
-    const a = (i * 13 * 360) / 1352;
-    const major = i % 13 === 0;
-    const r1 = major ? 80 : 92;
-    const rad = ((a - 90) * Math.PI) / 180;
-    s += `<line x1="${(r1 * Math.cos(rad)).toFixed(2)}" y1="${(r1 * Math.sin(rad)).toFixed(2)}" x2="${(100 * Math.cos(rad)).toFixed(2)}" y2="${(100 * Math.sin(rad)).toFixed(2)}" class="${major ? "c-major" : "c-minor"}"/>`;
+  for (let i = 0; i < FULL / 13; i++) {
+    const p = i * 13, major = p % STEP === 0;
+    const [x1, y1] = pt(major ? 80 : 92, p), [x2, y2] = pt(100, p);
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${major ? "c-major" : "c-minor"}"/>`;
     if (major) {
-      const n = i / 13 + 1;
-      const lr = ((a + 22.5 - 90) * Math.PI) / 180;
-      s += `<text x="${(66 * Math.cos(lr)).toFixed(2)}" y="${(66 * Math.sin(lr)).toFixed(2)}" class="c-label">${n}</text>`;
+      const [lx, ly] = pt(64, p), name = NAMES8[p / STEP];
+      s += `<text x="${lx}" y="${ly}" class="c-label${name.length === 1 ? " c-main" : ""}">${name}</text>`;
     }
   }
-  const na = ((pars * 360) / 1352 - 90) * (Math.PI / 180);
-  s += `<line x1="0" y1="0" x2="${(88 * Math.cos(na)).toFixed(2)}" y2="${(88 * Math.sin(na)).toFixed(2)}" class="c-needle"/><circle r="4" class="c-hub"/>`;
+  const [nx, ny] = pt(88, pars);
+  s += `<line x1="0" y1="0" x2="${nx}" y2="${ny}" class="c-needle"/><circle r="4" class="c-hub"/>`;
   $("#compass").innerHTML = s;
-  const dir = Math.floor(pars / 169 + 1e-9) + 1;
-  const into = pars - (dir - 1) * 169;
-  $("#compass-text").innerHTML = `Bearing <b>${fmtShow(pars, 10, 3)}</b> pars (<b>${fmtShow(pars, 13, 3)}</b> in base 13): direction <b>${Math.min(dir, 8)}</b> + ${fmtShow(into, 10, 3)} pars. Each direction spans 169 pars = 100 in base 13, small ticks every 13 pars.`;
+  const near = Math.round(pars / STEP) % 8;
+  let diff = pars - near * STEP;
+  if (diff > FULL / 2) diff -= FULL;
+  const sign = (d) => (d < 0 ? "−" : "+");
+  const dr = fmtBase(Math.abs(diff), 10, 3);
+  const nearTxt = Math.abs(diff) < 0.0005 ? `exactly <b>${NAMES8[near]}</b>` : `${dr.approx ? "≈ " : ""}<b>${NAMES8[near]}</b> ${sign(diff)}${dr.text} pars`;
+  const onAxis = NAMES8[near] === "N" || NAMES8[near] === "S";
+  $("#compass-text").innerHTML = `Travel bearing <b>${fmtBearing(pars, 10)}</b> pars (base 13: <b>${fmtBearing(pars, 13)}</b>)${onAxis && Math.abs(diff) >= 0.0005 ? "" : ", " + nearTxt}. Bearing from North: ${fmtShow(pars, 10, 3)} pars clockwise. One cardinal step is 169 pars (100 in base 13); small ticks every 13 pars.`;
 }
 
 $$("#unit-cats button").forEach((b) =>
@@ -380,8 +422,13 @@ $("#unit-from").addEventListener("change", (e) => {
 $("#unit-base").addEventListener("change", (e) => {
   // keep the same quantity when switching how it is written
   const oldBase = +e.target.value === 13 ? 10 : 13;
-  const v = parseBase($("#unit-val").value, oldBase);
-  if (Number.isFinite(v)) $("#unit-val").value = fmtBase(v, +e.target.value, 8).text;
+  if ($("#unit-from").value === "bearing") {
+    const p = parseBearing($("#unit-val").value, oldBase);
+    if (Number.isFinite(p)) $("#unit-val").value = fmtBearing(p, +e.target.value).replace("≈ ", "");
+  } else {
+    const v = parseBase($("#unit-val").value, oldBase);
+    if (Number.isFinite(v)) $("#unit-val").value = fmtBase(v, +e.target.value, 8).text;
+  }
   unitRender();
 });
 $("#unit-val").addEventListener("input", unitRender);
@@ -389,8 +436,9 @@ $("#unit-val").addEventListener("input", unitRender);
 function applySettingsInputs() {
   $("#set-procul").value = settings.procul;
   $("#set-day").value = settings.day;
+  $("#set-year").value = settings.year;
 }
-for (const [id, key] of [["#set-procul", "procul"], ["#set-day", "day"]]) {
+for (const [id, key] of [["#set-procul", "procul"], ["#set-day", "day"], ["#set-year", "year"]]) {
   $(id).addEventListener("input", (e) => {
     const v = parseFloat(e.target.value.replace(",", "."));
     if (v > 0) { settings[key] = v; store.set("settings", settings); unitRender(); }
