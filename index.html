@@ -21,6 +21,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="numbers" aria-selected="true">Numbers</button>
       <button role="tab" data-tab="calc">Calculator</button>
+      <button role="tab" data-tab="read">Read image</button>
       <button role="tab" data-tab="units">Units</button>
       <button role="tab" data-tab="about">About</button>
     </nav>
@@ -73,6 +74,47 @@
         </div>
         <div class="keypad" id="calc-pad"></div>
         <p class="hint">Keyboard works too: digits, A/B/C, + − * / ( ) . , Enter, Backspace, Esc.</p>
+      </div>
+    </section>
+
+    <!-- READ IMAGE -->
+    <section id="tab-read" class="panel" role="tabpanel" hidden>
+      <div class="card">
+        <h2>Read numerals from a picture</h2>
+        <p class="note">A photo, scan or screenshot with Nivean numerals. It is read on this device; nothing is uploaded.</p>
+        <div class="read-actions">
+          <label class="btn primary">Choose picture<input type="file" id="read-file" accept="image/*" hidden></label>
+          <button class="btn" id="read-paste">Paste</button>
+          <button class="btn" id="read-sample">Try a sample</button>
+        </div>
+        <p class="drop-hint note">…or drop a picture here, or press Ctrl/⌘+V.</p>
+        <div id="read-stage" hidden>
+          <div class="read-tools">
+            <div class="seg" id="read-view" role="radiogroup" aria-label="View">
+              <button data-view="picture" aria-pressed="true">Picture</button>
+              <button data-view="mask" aria-pressed="false">What it sees</button>
+            </div>
+            <button class="btn small" id="read-select" aria-pressed="false">Select area</button>
+            <button class="btn small" id="read-whole">Whole picture</button>
+            <select id="read-ink" aria-label="Ink colour">
+              <option value="auto">Ink: auto</option>
+              <option value="dark">Dark ink on light</option>
+              <option value="light">Light ink on dark</option>
+            </select>
+          </div>
+          <canvas id="read-canvas"></canvas>
+          <p id="read-status" class="note" aria-live="polite"></p>
+          <div id="read-results"></div>
+        </div>
+      </div>
+      <div class="card prose">
+        <h3 style="margin-top:0">Tips</h3>
+        <ul>
+          <li>Glyphs should be upright and separated by a little space; one number per line.</li>
+          <li>If other things in the picture get in the way, use <b>Select area</b> and drag a box around the numerals.</li>
+          <li>Amber boxes are guesses it is unsure about. Tap a digit below the picture to correct it (the list shows the best and second guess).</li>
+          <li>A small dot low on the line is read as a point. Ordinary text lines are skipped.</li>
+        </ul>
       </div>
     </section>
 
